@@ -9,20 +9,3 @@ venv/
 build/
 dist/
 *.egg-info/
-repomix-output.xml
-
-#настройки VS Code
-.vscode/
-
-# временные файлы Windows и Mac
-Thumbs.db
-.DS_Store
-
-*.db
-*.sqlite3
-
-# Логи
-*.log
-
-# Docker - если появятся локальные переопределения
-docker-compose.override.yml
