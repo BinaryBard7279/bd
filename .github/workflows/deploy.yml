@@ -22,7 +22,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/it-bgitu:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/bd_project:latest
 
   deploy:
     needs: build-and-push

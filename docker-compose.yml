@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${DOCKER_USERNAME}/it-bgitu:latest
+    image: ${DOCKER_USERNAME}/bd_project:latest
     restart: always
     env_file:
       - .env
