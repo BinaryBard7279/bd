@@ -15,6 +15,11 @@ services:
     restart: always
     env_file:
       - .env
+    # ДОБАВЛЯЕМ ЭТОТ БЛОК:
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
