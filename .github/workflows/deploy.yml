@@ -1,25 +1,34 @@
-name: Deploy EOS
+name: Deploy EOS (Docker Hub + Alembic)
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Copy files via SCP
-        uses: appleboy/scp-action@master
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          source: "."
-          target: "/root/eos_project"
+          username: ${{ secrets.DOCKER_USERNAME }}
+          # Сюда вставляешь свой Access Token в секреты GitHub
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      - name: Build and Push Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/it-bgitu:latest
 
-      - name: Execute deployment script over SSH
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remote Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -27,12 +36,21 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
             cd /root/eos_project
+            # Обновляем конфиги, которые лежат на сервере
             echo "DB_USER=${{ secrets.DB_USER }}" > .env
             echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
             echo "DB_HOST=db" >> .env
             echo "DB_PORT=5432" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-            docker compose build
+            echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env
+            
+            # Тянем новый образ и перезапускаем
+            docker compose pull
             docker compose up -d --remove-orphans
+            
+            # Авто-миграция базы данных
+            sleep 5
+            docker compose exec -T app alembic upgrade head
+            
             docker image prune -f

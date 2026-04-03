@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   app:
-    build: .
+    image: ${DOCKER_USERNAME}/it-bgitu:latest
     restart: always
     env_file:
       - .env
@@ -15,7 +13,6 @@ services:
     restart: always
     env_file:
       - .env
-    # ДОБАВЛЯЕМ ЭТОТ БЛОК:
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
