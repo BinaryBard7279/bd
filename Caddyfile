@@ -1,0 +1,7 @@
+vinogradovnikita.ru {
+    reverse_proxy app:8000
+}
+
+www.vinogradovnikita.ru {
+    redir https://vinogradovnikita.ru{uri}
+}
