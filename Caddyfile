@@ -1,3 +1,6 @@
 vinogradovnikita.ru {
-    reverse_proxy app:8000
+    reverse_proxy app:8000 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Port 443
+    }
 }
