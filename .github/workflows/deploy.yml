@@ -44,6 +44,7 @@ jobs:
             echo "DB_PORT=5432" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env
+            echo "DOMAIN=vinogradovnikita.ru" >> .env
             
             # Тянем новый образ и перезапускаем
             docker compose pull
