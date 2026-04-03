@@ -7,14 +7,13 @@ from app.admin import setup_admin
 
 app = FastAPI(title="API")
 
-# 1. Стандартный прокси-мидлвар
+# 1. Доверяем заголовкам (в паре с флагом в Dockerfile это заработает)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
-# 2. Магия из старого проекта: принудительный HTTPS
+# 2. Жесткий фикс схемы для всех запросов за прокси
 class ForceHTTPSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        proto = request.headers.get("x-forwarded-proto")
-        if proto == "https":
+        if request.headers.get("x-forwarded-proto") == "https":
             request.scope["scheme"] = "https"
         return await call_next(request)
 
