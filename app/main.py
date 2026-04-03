@@ -1,25 +1,33 @@
 import os
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.admin import setup_admin
 
 app = FastAPI(title="API")
 
-# 1. Сначала базовые настройки
-setup_admin(app)
+# 1. Сначала прокси-заголовки (чтобы FastAPI видел X-Forwarded-Proto)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    return "Всё работает. <a href='/admin'>Перейти в админку</a>"
+# 2. Фикс схемы (Force HTTPS) — ASGI версия надежнее
+@app.middleware("http")
+async def https_redirect_middleware(request, call_next):
+    # Если Caddy прислал заголовок https, форсим схему
+    if request.headers.get("x-forwarded-proto") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
 
-# 2. Настраиваем сессии 
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key-for-dev")
+# 3. Сессии
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY,
+    secret_key=os.getenv("SECRET_KEY", "dev-key"),
     https_only=True,
     same_site="lax"
 )
 
-# ВСЁ! Больше никаких мидлварей для принудительного HTTPS здесь не нужно.
+@app.get("/")
+async def root():
+    return {"message": "API работает. Перейти в админку: /admin"}
+
+# 4. И ТОЛЬКО ТЕПЕРЬ ПОДКЛЮЧАЕМ АДМИНКУ!
+setup_admin(app)
