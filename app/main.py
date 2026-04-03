@@ -1,33 +1,22 @@
 import os
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.admin import setup_admin
+from app.routers import public
 
-app = FastAPI(title="API")
+app = FastAPI(title="IT BGITU")
 
-# 1. Сначала прокси-заголовки (чтобы FastAPI видел X-Forwarded-Proto)
+# 1. Доверие к Caddy (чтобы работали стили)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
-# 2. Фикс схемы (Force HTTPS) — ASGI версия надежнее
-@app.middleware("http")
-async def https_redirect_middleware(request, call_next):
-    # Если Caddy прислал заголовок https, форсим схему
-    if request.headers.get("x-forwarded-proto") == "https":
-        request.scope["scheme"] = "https"
-    return await call_next(request)
-
-# 3. Сессии
+# 2. Сессии (нужны только чтобы логин в админку работал)
 app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", "dev-key"),
-    https_only=True,
+    SessionMiddleware, 
+    secret_key=os.getenv("SECRET_KEY", "simple-key"),
     same_site="lax"
 )
 
-@app.get("/")
-async def root():
-    return {"message": "API работает. Перейти в админку: /admin"}
-
-# 4. И ТОЛЬКО ТЕПЕРЬ ПОДКЛЮЧАЕМ АДМИНКУ!
+# 3. Роуты и админка
+app.include_router(public.router)
 setup_admin(app)
