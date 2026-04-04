@@ -4,18 +4,19 @@ from starlette.requests import Request
 from app.database import engine
 from app.config import settings
 
-# Импортируем все модели из нашего __init__.py
+# Импортируем все модели
 from app.models import (
     User, EquipmentType, EquipmentModel, EquipmentUnit,
     DefectType, System, Defect, DefectMedia, 
     DefectStatusHistory, ScheduledMaintenance
 )
 
-# --- АВТОРИЗАЦИЯ ---
+# --- АВТОРИЗАЦИЯ (ХАРДКОД) ---
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
         username, password = form.get("username"), form.get("password")
+
         if username == "admin" and password == "admin":
             request.session.update({"token": "admin_token"})
             return True
@@ -87,11 +88,11 @@ def setup_admin(app):
         app=app,
         engine=engine,
         authentication_backend=authentication_backend,
-        title="Управление парком",
+        title="Управление автопарком",
         base_url="/admin"
     )
     
-    # Регистрируем в нужном порядке (как они будут в меню)
+    # Регистрируем вкладки
     admin.add_view(DefectAdmin)
     admin.add_view(ScheduledMaintenanceAdmin)
     admin.add_view(EquipmentUnitAdmin)
