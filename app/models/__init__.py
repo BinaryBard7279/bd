@@ -1,8 +1,9 @@
-from sqlalchemy.orm import declarative_base
+from app.models.base import Base
 
-Base = declarative_base()
-
-# Здесь нужно импортировать все твои модели, чтобы они зарегистрировались
-# from .user import User 
-# from .speciality import Speciality
-# и т.д.
+# Импортируем все модели из разбитых файлов
+from app.models.users import User
+from app.models.equipment import EquipmentType, EquipmentModel, EquipmentUnit
+from app.models.defects import (
+    DefectType, System, DefectTypeSystem, 
+    Defect, DefectMedia, DefectStatusHistory, ScheduledMaintenance
+)
