@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,13 +15,15 @@ services:
 
   app:
     build: .
+    # На сервере скачает этот образ, локально сбилдит с этим именем
+    image: ${DOCKER_USERNAME:-local}/bd_project:latest
     environment:
-      DB_USER: postgres
-      DB_PASS: postgres
-      DB_NAME: postgres
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_NAME: ${DB_NAME:-postgres}
       DB_HOST: db
       DB_PORT: 5432
-      SECRET_KEY: "my_super_secret_key_change_me"
+      SECRET_KEY: ${SECRET_KEY:-"my_super_secret_key_change_me"}
     depends_on:
       db:
         condition: service_healthy
