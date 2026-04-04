@@ -9,6 +9,7 @@ class AdminAuth(AuthenticationBackend):
         form = await request.form()
         username, password = form.get("username"), form.get("password")
 
+        # ВНИМАНИЕ: хардкод! Позже заменим на проверку по базе данных
         if username == "admin" and password == "admin":
             request.session.update({"token": "admin_token"})
             return True
@@ -25,10 +26,14 @@ authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
 
 def setup_admin(app):
     admin = Admin(
-        app,
-        engine,
+        app=app,
+        engine=engine,
         authentication_backend=authentication_backend,
         title="Админ-панель",
         base_url="/admin"
     )
-
+    
+    # Позже будем добавлять модели вот так:
+    # admin.add_view(UserAdmin)
+    
+    return admin
