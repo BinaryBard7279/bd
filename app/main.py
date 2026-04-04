@@ -8,7 +8,11 @@ from app.routers import public
 # 1. Добавляем импорт нашей функции
 from app.admin import setup_admin 
 
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
 app = FastAPI(title="IT BGITU Remake")
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # --- Middleware для статики и шаблонов ---
 if os.path.isdir("app/static"):
@@ -34,6 +38,13 @@ async def read_root(request: Request):
         return templates.TemplateResponse("index.html", {"request": request})
     except Exception:
         return {"status": "IT BGITU Remake is running", "message": "index.html not found"}
+
+@app.get("/api/debug-headers")
+async def debug_headers(request: Request):
+    return {
+        "scheme": request.url.scheme, # Что думает приложение: http или https?
+        "headers": dict(request.headers) # Какие заголовки дошли?
+    }
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
