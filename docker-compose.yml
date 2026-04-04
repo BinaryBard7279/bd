@@ -1,38 +1,35 @@
 services:
-  app:
-    build: .
-    image: ${DOCKER_USERNAME}/bd_project:latest
-    restart: always
-    env_file:
-      - .env
-    ports:
-      - "127.0.0.1:8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-
   db:
     image: postgres:15-alpine
-    restart: always
-    env_file:
-      - .env
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-eos_db}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  app:
+    build: .
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      SECRET_KEY: "my_super_secret_key_change_me"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app/uploads:/code/app/uploads
+
   caddy:
-    image: caddy:2-alpine
-    restart: always
-    env_file:
-      - .env
+    image: caddy:2.7-alpine
     ports:
       - "80:80"
       - "443:443"

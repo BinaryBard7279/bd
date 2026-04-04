@@ -1,7 +1,9 @@
-{$DOMAIN:localhost} {
+# Если есть домен, замени vinogradovnikita.ru на свой
+vinogradovnikita.ru {
     reverse_proxy app:8000
 }
 
-www.{$DOMAIN:localhost} {
-    redir https://{$DOMAIN:localhost}{uri}
+# Админка на поддомене
+admin.vinogradovnikita.ru {
+    reverse_proxy app:8000
 }

@@ -1,4 +1,8 @@
-from app.models.base import Base
+from sqlalchemy.orm import declarative_base
 
+Base = declarative_base()
 
-__all__ = ["Base"]
+# Здесь нужно импортировать все твои модели, чтобы они зарегистрировались
+# from .user import User 
+# from .speciality import Speciality
+# и т.д.

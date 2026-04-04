@@ -1,35 +1,46 @@
 import os
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from starlette.middleware.sessions import SessionMiddleware
-from app.admin import setup_admin
-from app.config import settings
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.base import BaseHTTPMiddleware
+# Импорт роутеров (убедись, что файлы routers существуют)
+from app.routers import public # , auth, cms 
 
-app = FastAPI(title="API")
+app = FastAPI(title="IT BGITU Remake")
 
-# 1. Сессии для логина (чтобы пускало в админку)
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
-    same_site="lax"
-)
+# --- Middleware для статики и шаблонов ---
+# Убедись, что папки app/static и app/templates существуют
+if os.path.isdir("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# 2. ЯДЕРНЫЙ ФИКС
-# Никаких проверок заголовков. Тупо и жестко форсим HTTPS.
-class NuclearHTTPSMiddleware:
-    def __init__(self, app):
-        self.app = app
+if os.path.isdir("app/uploads"):
+    app.mount("/media", StaticFiles(directory="app/uploads"), name="upload")
 
-    async def __call__(self, scope, receive, send):
-        if scope.get("type") in ("http", "websocket"):
-            scope["scheme"] = "https"  # Ультимативная подмена
-        return await self.app(scope, receive, send)
+# Создаем папки если их нет, чтобы шаблоны не падали при инициализации
+if not os.path.isdir("app/templates"):
+    os.makedirs("app/templates")
 
-app.add_middleware(NuclearHTTPSMiddleware)
+templates = Jinja2Templates(directory="app/templates")
 
-# Инициализация админки
-setup_admin(app)
+# --- Подключение роутеров ---
+app.include_router(public.router)
+# app.include_router(auth.router)
+# app.include_router(cms.router)
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    return "Всё работает <br><br><a href='/admin'>/admin</a>"
+# Простой роут для главной страницы (если нет роутера public)
+@app.get("/")
+async def read_root(request: Request):
+    # Пытаемся отдать index.html, если его нет - отдаем JSON
+    try:
+        return templates.TemplateResponse("index.html", {"request": request})
+    except Exception:
+        return {"status": "IT BGITU Remake is running", "message": "index.html not found in app/templates"}
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
