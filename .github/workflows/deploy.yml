@@ -27,6 +27,21 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      # ШАГ 1: Скачиваем код в раннер деплоя
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ШАГ 2: Копируем свежие конфиги на сервер (ЭТОГО НЕ ХВАТАЛО)
+      - name: Copy compose and config to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "docker-compose.yml,Caddyfile"
+          target: "/root/eos_project"
+
+      # ШАГ 3: Запускаем команды на сервере
       - name: Remote Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -35,7 +50,8 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
             cd /root/eos_project
-            # Обновляем конфиги, которые лежат на сервере
+            
+            # Обновляем пароли
             echo "DB_USER=${{ secrets.DB_USER }}" > .env
             echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
@@ -45,11 +61,11 @@ jobs:
             echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env
             echo "DOMAIN=vinogradovnikita.ru" >> .env
             
-            # Тянем новый образ и перезапускаем
+            # ТЕПЕРЬ ОН УВИДИТ НОВЫЙ ФАЙЛ И СКАЧАЕТ ОБРАЗ
             docker compose pull
             docker compose up -d --remove-orphans
             
-            # Авто-миграция базы данных
+            # Авто-миграция
             sleep 5
             docker compose exec -T app alembic upgrade head
             
