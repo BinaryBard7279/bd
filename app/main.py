@@ -13,7 +13,11 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 app = FastAPI(title="Управление автопарком")
 
 # Сессии для админки (нужны для аутентификации)
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=settings.SECRET_KEY, 
+    same_site="lax"
+)
 
 # Защита от Mixed Content при работе за Caddy
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
