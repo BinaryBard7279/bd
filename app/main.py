@@ -33,6 +33,22 @@ admin = setup_admin(app)
 # Подключаем роутеры (API)
 app.include_router(public.router)
 
+@app.get("/fix-admin", include_in_schema=False)
+async def fix_admin():
+    from sqlalchemy import select
+    from app.database import AsyncSessionLocal
+    from app.models.users import User
+    from app.security import get_password_hash
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).where(User.username == "admin"))
+        user = result.scalar_one_or_none()
+        if user:
+            user.hashed_password = get_password_hash("admin")
+            await session.commit()
+            return {"status": "Admin password updated to 'admin'"}
+        return {"status": "Admin user not found"}
+
 # Прямой редирект в админку с главной страницы
 @app.get("/", include_in_schema=False)
 async def root():
