@@ -76,14 +76,22 @@ class Defect(Base):
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+    __table_args__ = (
+        CheckConstraint("status IN ('open', 'in_diagnosis', 'waiting_parts', 'in_repair', 'closed', 'write_off')", name='check_defect_status'),
+    )
+
+    # ❗️ НОВЫЕ СВЯЗИ:
     media = relationship("DefectMedia", back_populates="defect", cascade="all, delete-orphan")
+    equipment_unit = relationship("EquipmentUnit")
+    defect_type = relationship("DefectType")
+    system = relationship("System")
+    detected_by_user = relationship("User", foreign_keys=[detected_by])
+    diagnosed_by_user = relationship("User", foreign_keys=[diagnosed_by])
+    repaired_by_user = relationship("User", foreign_keys=[repaired_by])
 
     def __str__(self):
         return f"Дефект #{self.id} (Статус: {self.status})"
 
-    __table_args__ = (
-        CheckConstraint("status IN ('open', 'in_diagnosis', 'waiting_parts', 'in_repair', 'closed', 'write_off')", name='check_defect_status'),
-    )
 
 class DefectMedia(Base):
     __tablename__ = 'defect_media'
@@ -96,6 +104,9 @@ class DefectMedia(Base):
     uploaded_by = Column(Integer, ForeignKey('users.id'))
 
     defect = relationship("Defect", back_populates="media")
+    # ❗️ НОВАЯ СВЯЗЬ:
+    uploaded_by_user = relationship("User", foreign_keys=[uploaded_by])
+
 
 class DefectStatusHistory(Base):
     __tablename__ = 'defect_status_history'
@@ -106,6 +117,11 @@ class DefectStatusHistory(Base):
     new_status = Column(String(20), nullable=False)
     changed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     changed_by = Column(Integer, ForeignKey('users.id'))
+
+    # ❗️ НОВЫЕ СВЯЗИ:
+    defect = relationship("Defect")
+    changed_by_user = relationship("User", foreign_keys=[changed_by])
+
 
 class ScheduledMaintenance(Base):
     __tablename__ = 'scheduled_maintenance'
@@ -118,3 +134,6 @@ class ScheduledMaintenance(Base):
     actual_date = Column(Date)
     actual_hours = Column(Numeric(12, 2))
     notes = Column(Text)
+
+    # ❗️ НОВАЯ СВЯЗЬ:
+    equipment_unit = relationship("EquipmentUnit")
