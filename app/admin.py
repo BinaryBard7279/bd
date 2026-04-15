@@ -167,6 +167,13 @@ class DefectTypeAdmin(ModelView, model=DefectType):
 
 class DefectAdmin(ModelView, model=Defect):
     column_list = [Defect.id, Defect.equipment_unit_id, Defect.status, Defect.detected_at]
+    
+    # Показывать медиафайлы при просмотре деталей (кнопка с глазиком)
+    column_details_list = [
+        Defect.id, Defect.equipment_unit_id, Defect.defect_type_id, Defect.system_id,
+        Defect.status, Defect.diagnosis, Defect.media
+    ]
+    
     name_plural = "Журнал дефектов"
     icon = "fa-solid fa-wrench"
     column_labels = {
@@ -193,44 +200,59 @@ import os
 import uuid
 
 class DefectMediaAdmin(ModelView, model=DefectMedia):
-    column_list = [DefectMedia.id, DefectMedia.defect_id, DefectMedia.file_type, DefectMedia.file_path]
+    # Выводим связь 'defect' вместо просто 'defect_id'
+    column_list = [DefectMedia.id, DefectMedia.defect, DefectMedia.file_type, DefectMedia.file_path]
     
-    # ⚠️ ВОТ ЭТА СТРОКА РЕШИТ ПРОБЛЕМУ:
-    form_columns = [DefectMedia.defect_id, "file_path"] 
+    # ❗️ ИСПОЛЬЗУЕМ 'defect' (объект связи), а не defect_id
+    form_columns = ["defect", "file_path"] 
     
     form_overrides = {"file_path": FileField}
     name_plural = "Фото и видео поломок"
     icon = "fa-solid fa-images"
+    
     column_labels = {
         "id": "ID",
-        "defect_id": "ID поломки",
+        "defect": "Привязка к дефекту",
         "file_path": "Файл",
         "file_type": "Формат",
         "uploaded_at": "Загружено"
     }
 
+    # Делает поле выбора дефекта асинхронным поиском (удобно, когда дефектов будут тысячи)
+    form_ajax_refs = {
+        "defect": {
+            "fields": ("id", "diagnosis"),
+            "order_by": "id"
+        }
+    }
+
     async def on_model_change(self, data: dict, model: DefectMedia, is_created: bool, request: Request) -> None:
         file = data.get("file_path")
-        if file and hasattr(file, "filename"):
-            # Генерируем уникальное имя файла
+        
+        # Проверяем, что файл РЕАЛЬНО передали (у него есть имя и он не пустой)
+        if file and hasattr(file, "filename") and file.filename:
             ext = os.path.splitext(file.filename)[1]
             filename = f"{uuid.uuid4()}{ext}"
             
-            # Путь для сохранения (внутри контейнера)
             upload_dir = "app/uploads"
             if not os.path.exists(upload_dir):
                 os.makedirs(upload_dir)
             
             save_path = os.path.join(upload_dir, filename)
             
-            # Читаем и сохраняем контент
             content = await file.read()
             with open(save_path, "wb") as f:
                 f.write(content)
             
-            # Сохраняем в БД только имя файла или относительный путь
-            data["file_path"] = filename
+            data["file_path"] = f"/media/{filename}" # Сразу сохраняем готовый URL для фронтенда
             data["file_type"] = ext.replace(".", "").lower()
+        else:
+            # ЕСЛИ ФАЙЛ НЕ ЗАГРУЗИЛИ (просто меняют привязку дефекта)
+            if not is_created:
+                # Удаляем поле из обновления, чтобы база не затерла старый путь файла на NULL
+                data.pop("file_path", None)
+            else:
+                data.pop("file_path", None)
 
 class DefectStatusHistoryAdmin(ModelView, model=DefectStatusHistory):
     column_list = [DefectStatusHistory.id, DefectStatusHistory.defect_id, DefectStatusHistory.new_status]

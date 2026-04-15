@@ -70,6 +70,11 @@ class Defect(Base):
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+    media = relationship("DefectMedia", back_populates="defect", cascade="all, delete-orphan")
+
+    def __str__(self):
+        return f"Дефект #{self.id} (Статус: {self.status})"
+
     __table_args__ = (
         CheckConstraint("status IN ('open', 'in_diagnosis', 'waiting_parts', 'in_repair', 'closed', 'write_off')", name='check_defect_status'),
     )
@@ -83,6 +88,8 @@ class DefectMedia(Base):
     file_type = Column(String(50))
     uploaded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     uploaded_by = Column(Integer, ForeignKey('users.id'))
+
+    defect = relationship("Defect", back_populates="media")
 
 class DefectStatusHistory(Base):
     __tablename__ = 'defect_status_history'
