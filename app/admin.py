@@ -27,8 +27,8 @@ class AdminAuth(AuthenticationBackend):
                 if user.role != "admin":
                     return False
                 
-                access_token = create_access_token(data={"sub": user.username, "role": user.role})
-                request.session.update({"token": access_token})
+                # Сохраняем имя пользователя напрямую в надежно зашифрованную сессию Starlette
+                request.session.update({"admin_user": user.username})
                 return True
             
         return False
@@ -38,16 +38,12 @@ class AdminAuth(AuthenticationBackend):
         return True
 
     async def authenticate(self, request: Request) -> bool:
-        token = request.session.get("token")
-        if not token:
-            return False
-            
-        payload = decode_access_token(token)
-        if not payload:
+        # Читаем данные из сессии (если кука валидна, Starlette сама ее расшифрует)
+        username = request.session.get("admin_user")
+        if not username:
             return False
         
-        # Проверка пользователя в БД (защита от удаления/смены роли)
-        username = payload.get("sub")
+        # Проверяем, существует ли админ и не уволили ли его
         async with AsyncSessionLocal() as session:
             result = await session.execute(select(User).where(User.username == username))
             user = result.scalar_one_or_none()
