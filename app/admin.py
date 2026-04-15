@@ -129,7 +129,8 @@ class EquipmentUnitAdmin(ModelView, model=EquipmentUnit):
         "manufacture_year": "Год выпуска",
         "current_hours": "Наработка (м/ч)",
         "status": "Текущее состояние",
-        "purchase_date": "Дата ввода в эксплуатацию"
+        "purchase_date": "Дата ввода в эксплуатацию",
+        "created_at": "Зарегистрировано в системе"
     }
     column_descriptions = {
         "status": "active - в работе, maintenance - на ТО, repair - в ремонте",
@@ -181,15 +182,22 @@ class DefectAdmin(ModelView, model=Defect):
         "equipment_unit": "Единица техники",
         "defect_type": "Тип поломки",
         "system": "Где обнаружено (система)",
-        "detected_at": "Дата/время обнаружения",
+        "detected_at": "Дата обнаружения",
+        "detected_by": "Кто обнаружил (ID)",
         "detected_by_user": "Кто обнаружил",
-        "hours_at_detection": "Наработка на момент поломки",
+        "hours_at_detection": "Наработка при поломке",
         "diagnosis": "Результат диагностики",
+        "diagnosed_at": "Дата диагностики",
+        "diagnosed_by": "Кто диагностировал",
         "status": "Статус",
-        "repair_description": "Описание выполненных работ",
+        "repair_description": "Описание работ",
+        "repaired_at": "Дата ремонта",
+        "repaired_by": "Кто ремонтировал",
         "repair_cost": "Затраты на ремонт",
+        "hours_spent_repair": "Затрачено часов",
         "closed_at": "Дата закрытия",
-        "closure_comment": "Итоговый комментарий"
+        "closure_comment": "Итоговый комментарий",
+        "created_at": "Создано в системе"
     }
     column_descriptions = {
         "status": "open - открыт, in_repair - в ремонте, closed - устранен"
@@ -215,7 +223,8 @@ class DefectMediaAdmin(ModelView, model=DefectMedia):
         "defect": "Привязка к дефекту",
         "file_path": "Файл",
         "file_type": "Формат",
-        "uploaded_at": "Загружено"
+        "uploaded_at": "Загружено",
+        "uploaded_by": "Кто загрузил"
     }
 
     # Делает поле выбора дефекта асинхронным поиском (удобно, когда дефектов будут тысячи)
@@ -263,7 +272,8 @@ class DefectStatusHistoryAdmin(ModelView, model=DefectStatusHistory):
         "defect_id": "ID поломки",
         "old_status": "Старый статус",
         "new_status": "Новый статус",
-        "changed_at": "Дата изменения"
+        "changed_at": "Дата изменения",
+        "changed_by": "Кто изменил"
     }
 
 class ScheduledMaintenanceAdmin(ModelView, model=ScheduledMaintenance):
