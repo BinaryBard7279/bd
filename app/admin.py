@@ -194,6 +194,10 @@ import uuid
 
 class DefectMediaAdmin(ModelView, model=DefectMedia):
     column_list = [DefectMedia.id, DefectMedia.defect_id, DefectMedia.file_type, DefectMedia.file_path]
+    
+    # ⚠️ ВОТ ЭТА СТРОКА РЕШИТ ПРОБЛЕМУ:
+    form_columns = [DefectMedia.defect_id, "file_path"] 
+    
     form_overrides = {"file_path": FileField}
     name_plural = "Фото и видео поломок"
     icon = "fa-solid fa-images"
