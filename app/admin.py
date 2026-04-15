@@ -6,7 +6,7 @@ from app.database import engine, AsyncSessionLocal
 from app.config import settings
 from app.security import verify_password, create_access_token, decode_access_token, get_password_hash
 from markupsafe import Markup
-from wtforms import FileField
+from wtforms import FileField, SelectField
 import os
 import uuid
 
@@ -60,11 +60,31 @@ authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
 class UserAdmin(ModelView, model=User):
     column_list = [User.id, User.username, User.role, User.full_name]
     form_columns = [User.username, "hashed_password", User.full_name, User.role, User.department]
+    
+    column_details_list = [
+        User.id, User.username, User.full_name, User.role, User.department, User.created_at
+    ]
+
     name_plural = "Пользователи"
     icon = "fa-solid fa-users"
     column_labels = {
         "id": "ID", "username": "Логин", "hashed_password": "Новый пароль (если нужно сменить)",
         "full_name": "ФИО сотрудника", "role": "Роль", "department": "Подразделение", "created_at": "Дата регистрации"
+    }
+    
+    form_overrides = {
+        "role": SelectField
+    }
+    
+    form_args = {
+        "role": {
+            "choices": [
+                ("driver", "Водитель"),
+                ("mechanic", "Слесарь / Механик"),
+                ("foreman", "Мастер"),
+                ("admin", "Администратор")
+            ]
+        }
     }
 
     async def on_model_change(self, data: dict, model: User, is_created: bool, request: Request) -> None:

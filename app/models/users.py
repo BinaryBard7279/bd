@@ -16,3 +16,8 @@ class User(Base):
     __table_args__ = (
         CheckConstraint("role IN ('driver', 'mechanic', 'foreman', 'admin')", name='check_user_role'),
     )
+
+    def __str__(self):
+        if self.full_name:
+            return f"{self.full_name} ({self.role})"
+        return self.username
