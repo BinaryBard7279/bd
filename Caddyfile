@@ -1,9 +1,19 @@
 # Если есть домен, замени vinogradovnikita.ru на свой
 vinogradovnikita.ru {
+    @blocked_ips {
+        remote_ip 52.187.232.202 52.187.249.150 43.153.87.54 43.140.247.223 103.153.182.11 34.31.19.130
+    }
+    respond @blocked_ips "Access denied" 403
+    
     reverse_proxy app:8000
 }
 
 # Админка на поддомене
 admin.vinogradovnikita.ru {
+    @blocked_ips {
+        remote_ip 52.187.232.202 52.187.249.150 43.153.87.54 43.140.247.223 103.153.182.11 34.31.19.130
+    }
+    respond @blocked_ips "Access denied" 403
+
     reverse_proxy app:8000
 }

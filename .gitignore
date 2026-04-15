@@ -9,4 +9,5 @@ venv/
 build/
 dist/
 *.egg-info/
+GEMINI.md
 docker-compose.override.yml
