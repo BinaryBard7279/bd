@@ -194,7 +194,14 @@ class DefectAdmin(ModelView, model=Defect):
     }
 
 class DefectMediaAdmin(ModelView, model=DefectMedia):
-    column_list = [DefectMedia.id, "defect", DefectMedia.file_type, "file_path"]
+    # 1. Добавили отображение даты загрузки и автора в общую таблицу
+    column_list = [DefectMedia.id, "defect", DefectMedia.file_type, "uploaded_at", "uploaded_by_user", "file_path"]
+    
+    # 2. Добавили красивое отображение полей при нажатии на "глазика"
+    column_details_list = [
+        "id", "defect", "file_path", "file_type", "uploaded_at", "uploaded_by_user"
+    ]
+    
     form_columns = ["defect", "file_path"] 
     form_overrides = {"file_path": FileField}
     name_plural = "Фото и видео поломок"
@@ -206,18 +213,18 @@ class DefectMediaAdmin(ModelView, model=DefectMedia):
         "uploaded_by": "ID Загрузившего", "uploaded_by_user": "Кто загрузил"
     }
 
+    # Миниатюра для списка
     column_formatters = {
         "file_path": lambda m, a: Markup(f'<a href="{m.file_path}" target="_blank"><img src="{m.file_path}" height="50" style="border-radius: 3px;"></a>') if m.file_path else ""
     }
-
-    form_ajax_refs = {
-        "defect": {
-            "fields": ("id", "diagnosis"),
-            "order_by": "id"
-        }
+    
+    # Большое превью для "глазика"
+    column_formatters_detail = {
+        "file_path": lambda m, a: Markup(f'<a href="{m.file_path}" target="_blank"><img src="{m.file_path}" height="250" style="border-radius: 5px;"></a>') if m.file_path else ""
     }
 
     async def on_model_change(self, data: dict, model: DefectMedia, is_created: bool, request: Request) -> None:
+        # --- Часть 1: Сохранение самого файла ---
         file = data.get("file_path")
         if file and hasattr(file, "filename") and file.filename:
             ext = os.path.splitext(file.filename)[1]
@@ -236,6 +243,21 @@ class DefectMediaAdmin(ModelView, model=DefectMedia):
                 data.pop("file_path", None)
             else:
                 data.pop("file_path", None)
+                
+        # --- Часть 2: Автоматическое сохранение автора ---
+        if is_created:
+            # Достаем логин из защищенной сессии
+            username = request.session.get("admin_user")
+            if username:
+                from sqlalchemy import select
+                from app.models.users import User
+                
+                # Делаем быстрый запрос к базе, чтобы узнать ID этого пользователя
+                async with AsyncSessionLocal() as session:
+                    result = await session.execute(select(User.id).where(User.username == username))
+                    user_id = result.scalar_one_or_none()
+                    if user_id:
+                        data["uploaded_by"] = user_id # Записываем ID в базу!
 
 class DefectStatusHistoryAdmin(ModelView, model=DefectStatusHistory):
     column_list = [DefectStatusHistory.id, "defect", DefectStatusHistory.old_status, DefectStatusHistory.new_status]
