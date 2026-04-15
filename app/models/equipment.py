@@ -12,6 +12,9 @@ class EquipmentType(Base):
 
     models = relationship("EquipmentModel", back_populates="equipment_type")
 
+    def __str__(self):
+        return self.name
+
 
 class EquipmentModel(Base):
     __tablename__ = 'equipment_models'
@@ -28,6 +31,9 @@ class EquipmentModel(Base):
 
     equipment_type = relationship("EquipmentType", back_populates="models")
     units = relationship("EquipmentUnit", back_populates="model")
+
+    def __str__(self):
+        return f"{self.manufacturer} {self.name}"
 
 
 class EquipmentUnit(Base):
@@ -48,3 +54,6 @@ class EquipmentUnit(Base):
     )
 
     model = relationship("EquipmentModel", back_populates="units")
+
+    def __str__(self):
+        return f"{self.reg_number} (Моточасы: {self.current_hours})"

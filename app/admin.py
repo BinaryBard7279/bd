@@ -139,6 +139,10 @@ class EquipmentUnitAdmin(ModelView, model=EquipmentUnit):
 
 class SystemAdmin(ModelView, model=System):
     column_list = [System.id, System.name]
+    
+    # ❗️ ДОБАВЛЯЕМ ЖЕСТКИЙ СПИСОК ПОЛЕЙ
+    form_columns = ["name", "parent_system"] 
+    
     name_plural = "Узлы и системы"
     icon = "fa-solid fa-cogs"
     column_labels = {
@@ -152,6 +156,10 @@ class SystemAdmin(ModelView, model=System):
 
 class DefectTypeAdmin(ModelView, model=DefectType):
     column_list = [DefectType.id, DefectType.name, DefectType.severity_level]
+    
+    # ❗️ ДОБАВЛЯЕМ ЖЕСТКИЙ СПИСОК ПОЛЕЙ
+    form_columns = ["name", "severity_level", "repair_priority", "typical_repair_cost"]
+    
     name_plural = "Справочник дефектов"
     icon = "fa-solid fa-book-dead"
     column_labels = {

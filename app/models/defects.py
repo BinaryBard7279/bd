@@ -19,6 +19,9 @@ class DefectType(Base):
 
     systems = relationship("DefectTypeSystem", back_populates="defect_type")
 
+    def __str__(self):
+        return self.name
+
 
 class System(Base):
     __tablename__ = 'systems'
@@ -29,6 +32,9 @@ class System(Base):
 
     parent_system = relationship("System", remote_side=[id])
     defect_types = relationship("DefectTypeSystem", back_populates="system")
+
+    def __str__(self):
+        return self.name
 
 
 class DefectTypeSystem(Base):
