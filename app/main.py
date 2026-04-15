@@ -3,12 +3,17 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.routers import public
 from app.admin import setup_admin 
+from app.config import settings
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 app = FastAPI(title="Управление автопарком")
+
+# Сессии для админки (нужны для аутентификации)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Защита от Mixed Content при работе за Caddy
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
