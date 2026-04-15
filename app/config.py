@@ -14,6 +14,8 @@ class Settings:
     
     # Добавляем SECRET_KEY для работы сессий в админке
     SECRET_KEY = os.getenv("SECRET_KEY", "my_super_secret_key_change_me")
+    ALGORITHM = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 дней для админки
 
     @property
     def DATABASE_URL(self) -> str:

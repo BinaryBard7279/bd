@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Numeric, Date, DateTime, ForeignKey, SmallInteger, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -47,28 +47,28 @@ class Defect(Base):
     id = Column(Integer, primary_key=True)
     equipment_unit_id = Column(Integer, ForeignKey('equipment_units.id', ondelete='CASCADE'), nullable=False, index=True)
     defect_type_id = Column(Integer, ForeignKey('defect_types.id', ondelete='RESTRICT'), nullable=False)
-    system_id = Column(Integer, ForeignKey('systems.id'), nullable=False)
+    system_id = Column(Integer, ForeignKey('systems.id', ondelete='RESTRICT'), nullable=False)
     
-    detected_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    detected_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     detected_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
     hours_at_detection = Column(Numeric(12, 2), nullable=False, index=True)
     
     diagnosis = Column(Text)
-    diagnosed_at = Column(DateTime)
+    diagnosed_at = Column(DateTime(timezone=True))
     diagnosed_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
     
     status = Column(String(20), nullable=False, default='open', index=True)
     
     repair_description = Column(Text)
-    repaired_at = Column(DateTime)
+    repaired_at = Column(DateTime(timezone=True))
     repaired_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
     repair_cost = Column(Numeric(12, 2))
     hours_spent_repair = Column(Numeric(10, 2))
     
-    closed_at = Column(DateTime)
+    closed_at = Column(DateTime(timezone=True))
     closure_comment = Column(Text)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         CheckConstraint("status IN ('open', 'in_diagnosis', 'waiting_parts', 'in_repair', 'closed', 'write_off')", name='check_defect_status'),
@@ -81,7 +81,7 @@ class DefectMedia(Base):
     defect_id = Column(Integer, ForeignKey('defects.id', ondelete='CASCADE'), nullable=False, index=True)
     file_path = Column(String(500), nullable=False)
     file_type = Column(String(50))
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     uploaded_by = Column(Integer, ForeignKey('users.id'))
 
 class DefectStatusHistory(Base):
@@ -91,7 +91,7 @@ class DefectStatusHistory(Base):
     defect_id = Column(Integer, ForeignKey('defects.id', ondelete='CASCADE'), nullable=False)
     old_status = Column(String(20))
     new_status = Column(String(20), nullable=False)
-    changed_at = Column(DateTime, default=datetime.utcnow)
+    changed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     changed_by = Column(Integer, ForeignKey('users.id'))
 
 class ScheduledMaintenance(Base):

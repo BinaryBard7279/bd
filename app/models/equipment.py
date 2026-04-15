@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Numeric, Date, DateTime, ForeignKey, SmallInteger, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -41,7 +41,7 @@ class EquipmentUnit(Base):
     current_hours = Column(Numeric(12, 2), default=0)
     status = Column(String(20), nullable=False, default='active')
     purchase_date = Column(Date)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         CheckConstraint("status IN ('active', 'maintenance', 'repair', 'decommissioned')", name='check_equipment_status'),

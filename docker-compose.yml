@@ -28,7 +28,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./app/uploads:/code/app/uploads
+      - uploads_data:/code/app/uploads
 
   caddy:
     image: caddy:2.7-alpine
@@ -46,3 +46,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  uploads_data:

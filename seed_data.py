@@ -1,19 +1,38 @@
 import asyncio
 from decimal import Decimal
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import SessionLocal, engine
+from app.database import AsyncSessionLocal, engine
+from app.security import get_password_hash
 from app.models import (
     User, EquipmentType, EquipmentModel, EquipmentUnit,
     System, DefectType, Defect
 )
 
 async def seed():
-    async with SessionLocal() as session:
+    async with AsyncSessionLocal() as session:
         # 1. Пользователи
-        admin = User(username="admin", full_name="Иванов Иван Иванович", role="admin", department="Управление")
-        mechanic = User(username="mechanic_petr", full_name="Петров Петр Петрович", role="mechanic", department="РММ")
-        driver = User(username="driver_sergey", full_name="Сидоров Сергей", role="driver", department="Автоколонна №1")
+        admin = User(
+            username="admin", 
+            full_name="Иванов Иван Иванович", 
+            role="admin", 
+            department="Управление",
+            hashed_password=get_password_hash("admin")
+        )
+        mechanic = User(
+            username="mechanic_petr", 
+            full_name="Петров Петр Петрович", 
+            role="mechanic", 
+            department="РММ",
+            hashed_password=get_password_hash("12345")
+        )
+        driver = User(
+            username="driver_sergey", 
+            full_name="Сидоров Сергей", 
+            role="driver", 
+            department="Автоколонна №1",
+            hashed_password=get_password_hash("12345")
+        )
         
         session.add_all([admin, mechanic, driver])
         await session.flush()
@@ -52,7 +71,7 @@ async def seed():
             equipment_unit_id=unit1.id,
             defect_type_id=oil_leak.id,
             system_id=engine_sys.id,
-            detected_at=datetime.utcnow() - timedelta(days=1),
+            detected_at=datetime.now(timezone.utc) - timedelta(days=1),
             detected_by=driver.id,
             hours_at_detection=1248,
             status="open",

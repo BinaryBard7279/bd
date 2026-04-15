@@ -1,8 +1,10 @@
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
-from app.database import engine
+from sqlalchemy import select
+from app.database import engine, AsyncSessionLocal
 from app.config import settings
+from app.security import verify_password, create_access_token, decode_access_token, get_password_hash
 
 # Импортируем все модели
 from app.models import (
@@ -11,15 +13,24 @@ from app.models import (
     DefectStatusHistory, ScheduledMaintenance
 )
 
-# --- АВТОРИЗАЦИЯ (ХАРДКОД) ---
+# --- АВТОРИЗАЦИЯ ---
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
         username, password = form.get("username"), form.get("password")
 
-        if username == "admin" and password == "admin":
-            request.session.update({"token": "admin_token"})
-            return True
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(User).where(User.username == username))
+            user = result.scalar_one_or_none()
+
+            if user and verify_password(password, user.hashed_password):
+                if user.role != "admin":
+                    return False
+                
+                access_token = create_access_token(data={"sub": user.username, "role": user.role})
+                request.session.update({"token": access_token})
+                return True
+            
         return False
 
     async def logout(self, request: Request) -> bool:
@@ -27,18 +38,36 @@ class AdminAuth(AuthenticationBackend):
         return True
 
     async def authenticate(self, request: Request) -> bool:
-        return "token" in request.session
+        token = request.session.get("token")
+        if not token:
+            return False
+            
+        payload = decode_access_token(token)
+        if not payload:
+            return False
+        
+        # Проверка пользователя в БД (защита от удаления/смены роли)
+        username = payload.get("sub")
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(User).where(User.username == username))
+            user = result.scalar_one_or_none()
+            if not user or user.role != "admin":
+                return False
+            
+        return True
 
 authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
 
 # --- ПРЕДСТАВЛЕНИЯ ТАБЛИЦ ---
 class UserAdmin(ModelView, model=User):
     column_list = [User.id, User.username, User.role, User.full_name]
+    form_columns = [User.username, "hashed_password", User.full_name, User.role, User.department]
     name_plural = "Пользователи"
     icon = "fa-solid fa-users"
     column_labels = {
         "id": "ID",
         "username": "Логин",
+        "hashed_password": "Новый пароль (оставьте пустым, чтобы не менять)",
         "full_name": "ФИО сотрудника",
         "role": "Роль",
         "department": "Подразделение",
@@ -46,8 +75,23 @@ class UserAdmin(ModelView, model=User):
     }
     column_descriptions = {
         "role": "driver - водитель, mechanic - слесарь, foreman - мастер, admin - администратор",
-        "username": "Имя пользователя для входа в систему"
+        "username": "Имя пользователя для входа в систему",
+        "hashed_password": "При вводе нового значения оно будет автоматически захешировано"
     }
+
+    async def on_model_change(self, data: dict, model: User, is_created: bool, request: Request) -> None:
+        pwd = data.get("hashed_password")
+        
+        # Если пароль передан и это не существующий хеш (начинается с $2b$)
+        if pwd and not str(pwd).startswith("$2b$"):
+            data["hashed_password"] = get_password_hash(pwd)
+        elif not is_created and not pwd:
+            # При редактировании, если поле пустое, удаляем его из data, 
+            # чтобы SQLAdmin не затер старый хеш пустой строкой
+            data.pop("hashed_password", None)
+        elif is_created and not pwd:
+            # При создании нового пользователя пароль обязателен (можно поставить заглушку или кинуть ошибку)
+            data["hashed_password"] = get_password_hash("changeme")
 
 class EquipmentTypeAdmin(ModelView, model=EquipmentType):
     column_list = [EquipmentType.id, EquipmentType.name]
@@ -148,17 +192,45 @@ class DefectAdmin(ModelView, model=Defect):
         "status": "open - открыт, in_repair - в ремонте, closed - устранен"
     }
 
+from wtforms import FileField
+import os
+import uuid
+
 class DefectMediaAdmin(ModelView, model=DefectMedia):
-    column_list = [DefectMedia.id, DefectMedia.defect_id, DefectMedia.file_type]
+    column_list = [DefectMedia.id, DefectMedia.defect_id, DefectMedia.file_type, DefectMedia.file_path]
+    form_overrides = {"file_path": FileField}
     name_plural = "Фото и видео поломок"
     icon = "fa-solid fa-images"
     column_labels = {
         "id": "ID",
         "defect_id": "ID поломки",
-        "file_path": "Путь к файлу",
+        "file_path": "Файл",
         "file_type": "Формат",
         "uploaded_at": "Загружено"
     }
+
+    async def on_model_change(self, data: dict, model: DefectMedia, is_created: bool, request: Request) -> None:
+        file = data.get("file_path")
+        if file and hasattr(file, "filename"):
+            # Генерируем уникальное имя файла
+            ext = os.path.splitext(file.filename)[1]
+            filename = f"{uuid.uuid4()}{ext}"
+            
+            # Путь для сохранения (внутри контейнера)
+            upload_dir = "app/uploads"
+            if not os.path.exists(upload_dir):
+                os.makedirs(upload_dir)
+            
+            save_path = os.path.join(upload_dir, filename)
+            
+            # Читаем и сохраняем контент
+            content = await file.read()
+            with open(save_path, "wb") as f:
+                f.write(content)
+            
+            # Сохраняем в БД только имя файла или относительный путь
+            data["file_path"] = filename
+            data["file_type"] = ext.replace(".", "").lower()
 
 class DefectStatusHistoryAdmin(ModelView, model=DefectStatusHistory):
     column_list = [DefectStatusHistory.id, DefectStatusHistory.defect_id, DefectStatusHistory.new_status]

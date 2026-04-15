@@ -11,3 +11,4 @@ dist/
 *.egg-info/
 GEMINI.md
 docker-compose.override.yml
+repomix.config.json
